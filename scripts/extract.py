@@ -8,6 +8,9 @@ from lib.cli import DirectoryProcessor, rotate_image
 from lib.utils import get_folder
 from lib.multithreading import pool_process
 from plugins.PluginLoader import PluginLoader
+import dlib
+
+use_cuda = dlib.DLIB_USE_CUDA
 
 class ExtractTrainingData(DirectoryProcessor):
     def create_parser(self, subparser, command, description):
@@ -82,6 +85,14 @@ class ExtractTrainingData(DirectoryProcessor):
         processes = self.arguments.processes
         try:
             if processes != 1:
+                if use_cuda:
+                    print('='*40,\
+                            "WARNING: Dlib was compiled to use CUDA. It's not possible to use more than 1 parent process.", \
+                            "If you want to use multiprocessing instead, recompile Dlib without CUDA support.", \
+                            '='*40, \
+                            sep='\n')
+
+                    return
                 files = list(self.read_directory())
                 for filename, faces in tqdm(pool_process(self.processFiles, files, processes=processes), total = len(files)):
                     self.num_faces_detected += 1
