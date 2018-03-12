@@ -6,13 +6,15 @@ from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import Conv2D
 from keras.optimizers import Adam
 
-from lib.ModelAE import ModelAE, TrainerAE
+from .Model_Original import AutoEncoder, Trainer
 from lib.PixelShuffler import PixelShuffler
+
+from keras.utils import multi_gpu_model
 
 IMAGE_SHAPE = (64, 64, 3)
 ENCODER_DIM = 512
 
-class Model(ModelAE):
+class Model(AutoEncoder):
     def initModel(self):
         optimizer = Adam(lr=5e-5, beta_1=0.5, beta_2=0.999)
         x = Input(shape=IMAGE_SHAPE)
@@ -20,11 +22,15 @@ class Model(ModelAE):
         self.autoencoder_A = KerasModel(x, self.decoder_A(self.encoder(x)))
         self.autoencoder_B = KerasModel(x, self.decoder_B(self.encoder(x)))
 
+        if self.gpus > 1:
+            self.autoencoder_A = multi_gpu_model( self.autoencoder_A , self.gpus)
+            self.autoencoder_B = multi_gpu_model( self.autoencoder_B , self.gpus)
+
         self.autoencoder_A.compile(optimizer=optimizer, loss='mean_absolute_error')
         self.autoencoder_B.compile(optimizer=optimizer, loss='mean_absolute_error')
 
     def converter(self, swap):
-        autoencoder = self.autoencoder_B if not swap else self.autoencoder_A 
+        autoencoder = self.autoencoder_B if not swap else self.autoencoder_A
         return lambda img: autoencoder.predict(img)
 
     def conv(self, filters):
@@ -63,6 +69,3 @@ class Model(ModelAE):
         x = self.upscale(64)(x)
         x = Conv2D(3, kernel_size=5, padding='same', activation='sigmoid')(x)
         return KerasModel(input_, x)
-
-class Trainer(TrainerAE):
-    """Empty inheritance"""
