@@ -8,9 +8,9 @@ from lib.cli import DirectoryProcessor, rotate_image
 from lib.utils import get_folder
 from lib.multithreading import pool_process
 from plugins.PluginLoader import PluginLoader
-import dlib
+from tensorflow import test
 
-use_cuda = dlib.DLIB_USE_CUDA
+use_gpu = test.is_gpu_available()
 
 class ExtractTrainingData(DirectoryProcessor):
     def create_parser(self, subparser, command, description):
@@ -85,10 +85,11 @@ class ExtractTrainingData(DirectoryProcessor):
         processes = self.arguments.processes
         try:
             if processes != 1:
-                if use_cuda:
+                if use_gpu:
                     print('='*40,\
-                            "WARNING: Dlib was compiled to use CUDA. It's not possible to use more than 1 parent process.", \
-                            "If you want to use multiprocessing instead, recompile Dlib without CUDA support.", \
+                            "WARNING: Tensorflow is set to use CUDA. It's not possible to use more than 1 parent process.", \
+                            "If you want to use multiprocessing, reinstall Tensorflow without CUDA support, or export", \
+                            'CUDA_VISIBLE_DEVICES=-1 as an environment variable.', \
                             '='*40, \
                             sep='\n')
 
